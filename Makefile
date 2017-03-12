@@ -17,6 +17,12 @@ include Makethird
 # set a variable that was set on the command line.
 CFLAGS += $(XCFLAGS) -Iinclude -I$(GEN)
 LIBS += $(XLIBS) -lm
+LIBS += -lseccomp
+
+# please note: rules set in makerules do not work yet.
+# HAVE_LIBSECCOMP should be defined here
+# todo: implement protectedView option
+# and additional mupdf-x11-sandbox binary should be created for protectedView
 
 LIBS += $(FREETYPE_LIBS)
 LIBS += $(HARFBUZZ_LIBS)
@@ -35,6 +41,7 @@ CFLAGS += $(JBIG2DEC_CFLAGS)
 CFLAGS += $(JPEG_CFLAGS)
 CFLAGS += $(JPEGXR_CFLAGS)
 CFLAGS += $(LIBCRYPTO_CFLAGS)
+CFLAGS += $(LIBSECCOMP_CFLAGS)
 CFLAGS += $(LURATECH_CFLAGS)
 CFLAGS += $(MUJS_CFLAGS)
 CFLAGS += $(OPENJPEG_CFLAGS)
@@ -297,14 +304,14 @@ $(MUJSTEST) : $(MUJSTEST_OBJ) $(MUPDF_LIB) $(THIRD_LIB)
 
 ifeq "$(HAVE_X11)" "yes"
 MUVIEW_X11 := $(OUT)/mupdf-x11
-MUVIEW_X11_OBJ := $(addprefix $(OUT)/platform/x11/, x11_main.o x11_image.o pdfapp.o)
+MUVIEW_X11_OBJ := $(addprefix $(OUT)/platform/x11/, x11_main.o libsec.o x11_image.o pdfapp.o)
 $(MUVIEW_X11_OBJ) : $(FITZ_HDR) $(PDF_HDR)
 $(MUVIEW_X11) : $(MUVIEW_X11_OBJ) $(MUPDF_LIB) $(THIRD_LIB)
 	$(LINK_CMD) $(X11_LIBS)
 
 ifeq "$(HAVE_CURL)" "yes"
 MUVIEW_X11_CURL := $(OUT)/mupdf-x11-curl
-MUVIEW_X11_CURL_OBJ := $(addprefix $(OUT)/platform/x11/curl/, x11_main.o x11_image.o pdfapp.o curl_stream.o)
+MUVIEW_X11_CURL_OBJ := $(addprefix $(OUT)/platform/x11/curl/, x11_main.o libsec.o x11_image.o pdfapp.o curl_stream.o)
 $(MUVIEW_X11_CURL_OBJ) : $(FITZ_HDR) $(PDF_HDR)
 $(MUVIEW_X11_CURL) : $(MUVIEW_X11_CURL_OBJ) $(MUPDF_LIB) $(THIRD_LIB) $(CURL_LIB)
 	$(LINK_CMD) $(X11_LIBS) $(CURL_LIBS) $(SYS_CURL_DEPS)

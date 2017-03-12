@@ -1,5 +1,18 @@
 #include "pdfapp.h"
 
+//todo: set this flag in makefile
+#define HAVE_LIBSECCOMP
+#define USE_PROTECTEDVIEW
+#ifdef USE_PROTECTEDVIEW
+#ifndef HAVE_LIBSECCOMP
+#define HAVE_LIBSECCOMP
+#endif /* HAVE_LIBSECCOMP */
+#endif /* USE_PROTECTEDVIEW */
+
+#ifdef HAVE_LIBSECCOMP
+#include "libsec.h"
+#endif /* HAVE_LIBSECCOMP */
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
@@ -107,6 +120,8 @@ static int advance_scheduled = 0;
 static struct timeval tmo;
 static struct timeval tmo_advance;
 static struct timeval tmo_at;
+
+int protectedViewSet = 0;
 
 /*
  * Dialog boxes
@@ -723,32 +738,41 @@ void winreloadpage(pdfapp_t *app)
 
 void winopenuri(pdfapp_t *app, char *buf)
 {
-	char *browser = getenv("BROWSER");
-	pid_t pid;
-	if (!browser)
-	{
-#ifdef __APPLE__
-		browser = "open";
-#else
-		browser = "xdg-open";
-#endif
-	}
-	/* Fork once to start a child process that we wait on. This
-	 * child process forks again and immediately exits. The
-	 * grandchild process continues in the background. The purpose
-	 * of this strange two-step is to avoid zombie processes. See
-	 * bug 695701 for an explanation. */
-	pid = fork();
-	if (pid == 0)
-	{
-		if (fork() == 0)
+
+
+        //protectedView does not allow opening external apps
+        if(!protectedViewSet){
+
+
+	    char *browser = getenv("BROWSER");
+	    pid_t pid;
+	    if (!browser)
 		{
-			execlp(browser, browser, buf, (char*)0);
-			fprintf(stderr, "cannot exec '%s'\n", browser);
+#ifdef __APPLE__
+		    browser = "open";
+#else
+		    browser = "xdg-open";
+#endif
 		}
-		exit(0);
-	}
-	waitpid(pid, NULL, 0);
+	    /* Fork once to start a child process that we wait on. This
+	     * child process forks again and immediately exits. The
+	     * grandchild process continues in the background. The purpose
+	     * of this strange two-step is to avoid zombie processes. See
+	     * bug 695701 for an explanation. */
+	    pid = fork();
+	    if (pid == 0)
+		{
+		    if (fork() == 0)
+			{
+			    execlp(browser, browser, buf, (char*)0);
+			    fprintf(stderr, "cannot exec '%s'\n", browser);
+			}
+		    exit(0);
+		}
+	    waitpid(pid, NULL, 0);
+
+	}//protectedViewSet
+	
 }
 
 static void onkey(int c, int modifiers)
@@ -816,12 +840,42 @@ static void usage(void)
 	fprintf(stderr, "\t-S -\tfont size for EPUB layout\n");
 	fprintf(stderr, "\t-U -\tuser style sheet for EPUB layout\n");
 	fprintf(stderr, "\t-X\tdisable document styles for EPUB layout\n");
+
+#ifdef HAVE_LIBSECCOMP
+#ifndef USE_PROTECTEDVIEW //this flag enforces protectedView by default
+
+	fprintf(stderr, "\t-s -\t[strict] - use protectedView (strict sandbox)\n");
+
+#endif /* USE_PROTECTEDVIEW */
+#endif /* HAVE_LIBSECCOMP */
+
 	exit(1);
 }
 
 int main(int argc, char **argv)
 {
-	int c;
+
+
+#ifdef HAVE_LIBSECCOMP
+
+    if(protectedMode()){
+        perror("SECCOMP initialisation failed");
+        exit(EXIT_FAILURE);
+    }
+
+#endif /* HAVE_LIBSECCOMP */
+
+#ifdef USE_PROTECTEDVIEW
+
+    if(protectedView()){
+        perror("SECCOMP initialisation failed");
+        exit(EXIT_FAILURE);
+    }
+
+#endif /* USE_PROTECTEDVIEW */
+    
+
+        int c;
 	int len;
 	char buf[128];
 	KeySym keysym;
@@ -847,7 +901,7 @@ int main(int argc, char **argv)
 
 	pdfapp_init(ctx, &gapp);
 
-	while ((c = fz_getopt(argc, argv, "Ip:r:A:C:W:H:S:U:Xb:")) != -1)
+	while ((c = fz_getopt(argc, argv, "Ip:r:A:C:W:H:S:U:Xb:s:")) != -1)
 	{
 		switch (c)
 		{
@@ -868,6 +922,24 @@ int main(int argc, char **argv)
 		case 'U': gapp.layout_css = fz_optarg; break;
 		case 'X': gapp.layout_use_doc_css = 0; break;
 		case 'b': bps = (fz_optarg && *fz_optarg) ? fz_atoi(fz_optarg) : 4096; break;
+
+#ifdef HAVE_LIBSECCOMP
+#ifndef USE_PROTECTEDVIEW //this flag enforces protectedView by default
+
+		case 's':
+			//activate protectedView Sandbox
+			protectedViewSet = 1;
+
+    			if(protectedView()){
+		            perror("SECCOMP initialisation failed");
+		            exit(EXIT_FAILURE);
+		    	}
+
+			break;
+			
+#endif /* USE_PROTECTEDVIEW */
+#endif /* HAVE_LIBSECCOMP */
+
 		default: usage();
 		}
 	}
@@ -882,6 +954,22 @@ int main(int argc, char **argv)
 
 	winopen();
 
+
+	// at this stage, the socket connection to the X11 server has been established and further use of socket syscalls calls can blocked
+
+	// todo: create a more restrictive filter to block syscalls like 'connect' to prevent socket communication
+	
+	//#ifdef USE_PROTECTEDVIEW
+
+	//if(protectedView()){
+	//  perror("SECCOMP initialisation failed");
+	//  exit(EXIT_FAILURE);
+	//  }
+	    
+	//#endif /* USE_PROTECTEDVIEW */
+
+
+	
 	if (resolution == -1)
 		resolution = winresolution();
 	if (resolution < MINRES)
