@@ -136,13 +136,10 @@ int protectedView(void){
 
 
     ALLOW_RULE (access);
-    ALLOW_RULE (arch_prctl);
     ALLOW_RULE (brk);
     ALLOW_RULE (clock_gettime);
-    ALLOW_RULE (clone);
     ALLOW_RULE (close);
     ALLOW_RULE (connect);
-    ALLOW_RULE (execve);
     ALLOW_RULE (exit);
     ALLOW_RULE (exit_group);
     ALLOW_RULE (fcntl);  /* not specified below */
@@ -164,10 +161,7 @@ int protectedView(void){
     ALLOW_RULE (recvmsg);
     ALLOW_RULE (restart_syscall);
     ALLOW_RULE (rt_sigaction);
-    ALLOW_RULE (rt_sigprocmask);
     ALLOW_RULE (select);
-    ALLOW_RULE (set_robust_list);
-    ALLOW_RULE (set_tid_address);
     ALLOW_RULE (shmat);
     ALLOW_RULE (shmctl);
     ALLOW_RULE (shmget);
@@ -180,6 +174,7 @@ int protectedView(void){
     ALLOW_RULE (writev);  /* not specified below */
     ALLOW_RULE (wait4);  /* trying to open links should not crash the app */
 
+    
 	/* special restrictions for socket, only allow AF_UNIX/AF_LOCAL */
 	if (seccomp_rule_add (ctx, SCMP_ACT_ALLOW, SCMP_SYS(socket), 1,
 	                      SCMP_CMP(0, SCMP_CMP_EQ, AF_UNIX)) < 0)
