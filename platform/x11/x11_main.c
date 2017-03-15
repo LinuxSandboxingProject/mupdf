@@ -954,19 +954,17 @@ int main(int argc, char **argv)
 
 	winopen();
 
-
 	// at this stage, the socket connection to the X11 server has been established and further use of socket syscalls calls can blocked
-
-	// todo: create a more restrictive filter to block syscalls like 'connect' to prevent socket communication
+	// this filter allow only very few syscalls that are needed for rendering the target document
 	
-	//#ifdef USE_PROTECTEDVIEW
+	#ifdef USE_PROTECTEDVIEW
 
-	//if(protectedView()){
-	//  perror("SECCOMP initialisation failed");
-	//  exit(EXIT_FAILURE);
-	//  }
+	if(renderFilter()){
+	  perror("SECCOMP initialisation failed");
+	  exit(EXIT_FAILURE);
+	  }
 	    
-	//#endif /* USE_PROTECTEDVIEW */
+	#endif /* USE_PROTECTEDVIEW */
 
 
 	

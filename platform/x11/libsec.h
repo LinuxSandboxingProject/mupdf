@@ -13,4 +13,7 @@ int protectedMode(void);
 // network connections are prohibited as well
 int protectedView(void);
 
+// restrict the process to use only the minimal syscalls needed to render the target document
+int renderFilter(void);
+
 #endif
