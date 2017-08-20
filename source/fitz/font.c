@@ -347,7 +347,7 @@ fz_font *fz_load_fallback_font(fz_context *ctx, int script, int language, int se
 		*fontp = fz_load_system_fallback_font(ctx, script, language, serif, bold, italic);
 		if (!*fontp)
 		{
-			data = fz_lookup_noto_font(ctx, script, language, 0, &size);
+			data = fz_lookup_noto_font(ctx, script, language, serif, &size);
 			if (data)
 				*fontp = fz_new_font_from_memory(ctx, NULL, data, size, 0, 0);
 		}
@@ -1356,27 +1356,27 @@ fz_render_t3_glyph_direct(fz_context *ctx, fz_device *dev, fz_font *font, int gi
 void
 fz_print_font(fz_context *ctx, fz_output *out, fz_font *font)
 {
-	fz_printf(ctx, out, "font '%s' {\n", font->name);
+	fz_write_printf(ctx, out, "font '%s' {\n", font->name);
 
 	if (font->ft_face)
 	{
-		fz_printf(ctx, out, "\tfreetype face %p\n", font->ft_face);
+		fz_write_printf(ctx, out, "\tfreetype face %p\n", font->ft_face);
 		if (font->flags.ft_substitute)
-			fz_printf(ctx, out, "\tsubstitute font\n");
+			fz_write_printf(ctx, out, "\tsubstitute font\n");
 	}
 
 	if (font->t3procs)
 	{
-		fz_printf(ctx, out, "\ttype3 matrix [%g %g %g %g]\n",
+		fz_write_printf(ctx, out, "\ttype3 matrix [%g %g %g %g]\n",
 			font->t3matrix.a, font->t3matrix.b,
 			font->t3matrix.c, font->t3matrix.d);
 
-		fz_printf(ctx, out, "\ttype3 bbox [%g %g %g %g]\n",
+		fz_write_printf(ctx, out, "\ttype3 bbox [%g %g %g %g]\n",
 			font->bbox.x0, font->bbox.y0,
 			font->bbox.x1, font->bbox.y1);
 	}
 
-	fz_printf(ctx, out, "}\n");
+	fz_write_printf(ctx, out, "}\n");
 }
 
 fz_rect *

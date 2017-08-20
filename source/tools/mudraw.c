@@ -352,44 +352,47 @@ static void
 file_level_headers(fz_context *ctx)
 {
 	if (output_format == OUT_STEXT || output_format == OUT_TRACE)
-		fz_printf(ctx, out, "<?xml version=\"1.0\"?>\n");
+		fz_write_printf(ctx, out, "<?xml version=\"1.0\"?>\n");
 
 	if (output_format == OUT_TEXT || output_format == OUT_HTML || output_format == OUT_STEXT)
 		sheet = fz_new_stext_sheet(ctx);
 
 	if (output_format == OUT_HTML)
 	{
-		fz_printf(ctx, out, "<style>\n");
-		fz_printf(ctx, out, "body{background-color:gray;margin:12pt;}\n");
-		fz_printf(ctx, out, "div.page{background-color:white;margin:6pt;padding:6pt;}\n");
-		fz_printf(ctx, out, "div.block{border:1px solid gray;margin:6pt;padding:6pt;}\n");
-		fz_printf(ctx, out, "div.metaline{display:table;width:100%%}\n");
-		fz_printf(ctx, out, "div.line{display:table-row;padding:6pt}\n");
-		fz_printf(ctx, out, "div.cell{display:table-cell;padding-left:6pt;padding-right:6pt}\n");
-		fz_printf(ctx, out, "p{margin:0pt;padding:0pt;}\n");
-		fz_printf(ctx, out, "</style>\n");
-		fz_printf(ctx, out, "<body>\n");
+		fz_write_printf(ctx, out, "<style>\n");
+		fz_write_printf(ctx, out, "body{background-color:gray;margin:12pt;}\n");
+		fz_write_printf(ctx, out, "div.page{background-color:white;margin:6pt;padding:6pt;}\n");
+		fz_write_printf(ctx, out, "div.block{border:1px solid gray;margin:6pt;padding:6pt;}\n");
+		fz_write_printf(ctx, out, "div.metaline{display:table;width:100%%}\n");
+		fz_write_printf(ctx, out, "div.line{display:table-row;padding:6pt}\n");
+		fz_write_printf(ctx, out, "div.cell{display:table-cell;padding-left:6pt;padding-right:6pt}\n");
+		fz_write_printf(ctx, out, "p{margin:0pt;padding:0pt;}\n");
+		fz_write_printf(ctx, out, "</style>\n");
+		fz_write_printf(ctx, out, "<body>\n");
 	}
 
 	if (output_format == OUT_STEXT || output_format == OUT_TRACE)
-		fz_printf(ctx, out, "<document name=\"%s\">\n", filename);
+		fz_write_printf(ctx, out, "<document name=\"%s\">\n", filename);
 
 	if (output_format == OUT_PS)
 		fz_write_ps_file_header(ctx, out);
+
+	if (output_format == OUT_PWG)
+		fz_write_pwg_file_header(ctx, out);
 }
 
 static void
 file_level_trailers(fz_context *ctx)
 {
 	if (output_format == OUT_STEXT || output_format == OUT_TRACE)
-		fz_printf(ctx, out, "</document>\n");
+		fz_write_printf(ctx, out, "</document>\n");
 
 	if (output_format == OUT_HTML)
 	{
-		fz_printf(ctx, out, "</body>\n");
-		fz_printf(ctx, out, "<style>\n");
+		fz_write_printf(ctx, out, "</body>\n");
+		fz_write_printf(ctx, out, "<style>\n");
 		fz_print_stext_sheet(ctx, out, sheet);
-		fz_printf(ctx, out, "</style>\n");
+		fz_write_printf(ctx, out, "</style>\n");
 	}
 
 	if (output_format == OUT_PS)
@@ -432,7 +435,7 @@ static void drawband(fz_context *ctx, fz_page *page, fz_display_list *list, cons
 		if (pix->alpha)
 			fz_unmultiply_pixmap(ctx, pix);
 
-		if ((output_format == OUT_PCL && out_cs == CS_MONO) || (output_format == OUT_PBM) || (output_format == OUT_PKM))
+		if (((output_format == OUT_PCL || output_format == OUT_PWG) && out_cs == CS_MONO) || (output_format == OUT_PBM) || (output_format == OUT_PKM))
 			*bit = fz_new_bitmap_from_pixmap_band(ctx, pix, NULL, band_start);
 	}
 	fz_catch(ctx)
@@ -453,7 +456,7 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 	{
 		fz_try(ctx)
 		{
-			fz_printf(ctx, out, "<page mediabox=\"%g %g %g %g\">\n",
+			fz_write_printf(ctx, out, "<page mediabox=\"%g %g %g %g\">\n",
 					mediabox.x0, mediabox.y0, mediabox.x1, mediabox.y1);
 			dev = fz_new_trace_device(ctx, out);
 			if (lowmemory)
@@ -462,7 +465,7 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 				fz_run_display_list(ctx, list, dev, &fz_identity, &fz_infinite_rect, cookie);
 			else
 				fz_run_page(ctx, page, dev, &fz_identity, cookie);
-			fz_printf(ctx, out, "</page>\n");
+			fz_write_printf(ctx, out, "</page>\n");
 			fz_close_device(ctx, dev);
 		}
 		fz_always(ctx)
@@ -516,7 +519,7 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 			else if (output_format == OUT_TEXT)
 			{
 				fz_print_stext_page(ctx, out, text);
-				fz_printf(ctx, out, "\f\n");
+				fz_write_printf(ctx, out, "\f\n");
 			}
 		}
 		fz_always(ctx)
@@ -636,6 +639,12 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 		fz_bound_page(ctx, page, &bounds);
 		zoom = resolution / 72;
 		fz_pre_scale(fz_rotate(&ctm, rotation), zoom, zoom);
+
+		if (output_format == OUT_TGA)
+		{
+			fz_pre_scale(fz_pre_translate(&ctm, 0, -height), 1, -1);
+		}
+
 		tbounds = bounds;
 		fz_round_rect(&ibounds, fz_transform_rect(&tbounds, &ctm));
 
@@ -749,6 +758,15 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 					bander = fz_new_pkm_band_writer(ctx, out);
 				else if (output_format == OUT_PS)
 					bander = fz_new_ps_band_writer(ctx, out);
+				else if (output_format == OUT_TGA)
+					bander = fz_new_tga_band_writer(ctx, out, colorspace == fz_device_bgr(ctx));
+				else if (output_format == OUT_PWG)
+				{
+					if (out_cs == CS_MONO)
+						bander = fz_new_mono_pwg_band_writer(ctx, out, NULL);
+					else
+						bander = fz_new_pwg_band_writer(ctx, out, NULL);
+				}
 				else if (output_format == OUT_PCL)
 				{
 					if (out_cs == CS_MONO)
@@ -779,10 +797,6 @@ static void dodrawpage(fz_context *ctx, fz_page *page, fz_display_list *list, in
 				{
 					if (bander)
 						fz_write_band(ctx, bander, bit ? bit->stride : pix->stride, drawheight, bit ? bit->samples : pix->samples);
-					else if (output_format == OUT_PWG)
-						fz_write_pixmap_as_pwg(ctx, out, pix, NULL);
-					else if (output_format == OUT_TGA)
-						fz_write_pixmap_as_tga(ctx, out, pix);
 					fz_drop_bitmap(ctx, bit);
 					bit = NULL;
 				}
@@ -1020,7 +1034,7 @@ static void drawpage(fz_context *ctx, fz_document *doc, int pagenum)
 	}
 	else
 	{
-		fprintf(stderr, "page %s %d%s", filename, pagenum, showmd5 || showtime || showfeatures ? "" : "\n");
+		fprintf(stderr, "page %s %d", filename, pagenum);
 		dodrawpage(ctx, page, list, pagenum, &cookie, start, 0, filename, 0);
 	}
 }
@@ -1295,7 +1309,7 @@ int mudraw_main(int argc, char **argv)
 {
 	char *password = "";
 	fz_document *doc = NULL;
-	int c, i;
+	int c;
 	fz_context *ctx;
 	fz_alloc_context alloc_ctx = { NULL, trace_malloc, trace_realloc, trace_free };
 	fz_locks_context *locks = NULL;
@@ -1431,6 +1445,7 @@ int mudraw_main(int argc, char **argv)
 
 	if (num_workers > 0)
 	{
+		int i;
 		int fail = 0;
 		workers = fz_calloc(ctx, num_workers, sizeof(*workers));
 		for (i = 0; i < num_workers; i++)
@@ -1716,6 +1731,7 @@ int mudraw_main(int argc, char **argv)
 #ifndef DISABLE_MUTHREADS
 	if (num_workers > 0)
 	{
+		int i;
 		for (i = 0; i < num_workers; i++)
 		{
 			workers[i].band = -1;

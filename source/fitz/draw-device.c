@@ -1950,10 +1950,10 @@ static void
 fz_print_tile(fz_context *ctx, fz_output *out, void *key_)
 {
 	tile_key *key = (tile_key *)key_;
-	fz_printf(ctx, out, "(tile id=%x, ctm=%g %g %g %g) ", key->id, key->ctm[0], key->ctm[1], key->ctm[2], key->ctm[3]);
+	fz_write_printf(ctx, out, "(tile id=%x, ctm=%g %g %g %g) ", key->id, key->ctm[0], key->ctm[1], key->ctm[2], key->ctm[3]);
 }
 
-static fz_store_type fz_tile_store_type =
+static const fz_store_type fz_tile_store_type =
 {
 	fz_make_hash_tile_key,
 	fz_keep_tile_key,
@@ -2294,7 +2294,7 @@ fz_draw_render_flags(fz_context *ctx, fz_device *devp, int set, int clear)
 fz_device *
 fz_new_draw_device(fz_context *ctx, const fz_matrix *transform, fz_pixmap *dest)
 {
-	fz_draw_device *dev = fz_new_device(ctx, sizeof *dev);
+	fz_draw_device *dev = fz_new_derived_device(ctx, fz_draw_device);
 
 	dev->super.drop_device = fz_draw_drop_device;
 

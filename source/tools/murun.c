@@ -1073,7 +1073,7 @@ js_dev_end_tile(fz_context *ctx, fz_device *dev)
 
 static fz_device *new_js_device(fz_context *ctx, js_State *J)
 {
-	js_device *dev = fz_new_device(ctx, sizeof *dev);
+	js_device *dev = fz_new_derived_device(ctx, js_device);
 
 	dev->super.fill_path = js_dev_fill_path;
 	dev->super.stroke_path = js_dev_stroke_path;
@@ -1416,7 +1416,7 @@ static void ffi_Buffer_writeByte(js_State *J)
 	fz_buffer *buf = js_touserdata(J, 0, "fz_buffer");
 	unsigned char val = js_tonumber(J, 1);
 	fz_try(ctx)
-		fz_write_buffer_byte(ctx, buf, val);
+		fz_append_byte(ctx, buf, val);
 	fz_catch(ctx)
 		rethrow(J);
 }
@@ -1427,7 +1427,7 @@ static void ffi_Buffer_writeRune(js_State *J)
 	fz_buffer *buf = js_touserdata(J, 0, "fz_buffer");
 	int val = js_tonumber(J, 1);
 	fz_try(ctx)
-		fz_write_buffer_rune(ctx, buf, val);
+		fz_append_rune(ctx, buf, val);
 	fz_catch(ctx)
 		rethrow(J);
 }
@@ -1442,8 +1442,8 @@ static void ffi_Buffer_write(js_State *J)
 		const char *s = js_tostring(J, i);
 		fz_try(ctx) {
 			if (i > 1)
-				fz_write_buffer_byte(ctx, buf, ' ');
-			fz_write_buffer(ctx, buf, s, strlen(s));
+				fz_append_byte(ctx, buf, ' ');
+			fz_append_string(ctx, buf, s);
 		} fz_catch(ctx)
 			rethrow(J);
 	}
@@ -1455,7 +1455,7 @@ static void ffi_Buffer_writeLine(js_State *J)
 	fz_buffer *buf = js_touserdata(J, 0, "fz_buffer");
 	ffi_Buffer_write(J);
 	fz_try(ctx)
-		fz_write_buffer_byte(ctx, buf, '\n');
+		fz_append_byte(ctx, buf, '\n');
 	fz_catch(ctx)
 		rethrow(J);
 }
@@ -2755,9 +2755,8 @@ static void ffi_DocumentWriter_endPage(js_State *J)
 {
 	fz_context *ctx = js_getcontext(J);
 	fz_document_writer *wri = js_touserdata(J, 0, "fz_document_writer");
-	fz_device *device = js_touserdata(J, 1, "fz_device");
 	fz_try(ctx)
-		fz_end_page(ctx, wri, device);
+		fz_end_page(ctx, wri);
 	fz_catch(ctx)
 		rethrow(J);
 }
@@ -3994,7 +3993,7 @@ static void ffi_PDFAnnotation_setQuadPoints(js_State *J)
 		js_getindex(J, 1, i);
 		for (k = 0; k < 8; ++k) {
 			js_getindex(J, -1, k);
-			qp[n * 8 + k] = js_tonumber(J, -1);
+			qp[i * 8 + k] = js_tonumber(J, -1);
 			js_pop(J, 1);
 		}
 		js_pop(J, 1);
@@ -4360,8 +4359,8 @@ int murun_main(int argc, char **argv)
 	js_newobject(J);
 	{
 		jsB_propfun(J, "DocumentWriter.beginPage", ffi_DocumentWriter_beginPage, 1);
-		jsB_propfun(J, "DocumentWriter.endPage", ffi_DocumentWriter_endPage, 1);
-		jsB_propfun(J, "DocumentWriter.close", ffi_DocumentWriter_close, 1);
+		jsB_propfun(J, "DocumentWriter.endPage", ffi_DocumentWriter_endPage, 0);
+		jsB_propfun(J, "DocumentWriter.close", ffi_DocumentWriter_close, 0);
 	}
 	js_setregistry(J, "fz_document_writer");
 

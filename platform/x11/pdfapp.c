@@ -66,7 +66,7 @@ char *pdfapp_version(pdfapp_t *app)
 {
 	return
 		"MuPDF " FZ_VERSION "\n"
-		"Copyright 2006-2014 Artifex Software, Inc.\n";
+		"Copyright 2006-2017 Artifex Software, Inc.\n";
 }
 
 char *pdfapp_usage(pdfapp_t *app)
@@ -247,7 +247,7 @@ static int make_fake_doc(pdfapp_t *app)
 
 
 		contents = fz_new_buffer(ctx, 100);
-		fz_buffer_printf(ctx, contents, "1 0 0 RG %f w 0 0 m %f %f l 0 %f m %f 0 l s\n",
+		fz_append_printf(ctx, contents, "1 0 0 RG %g w 0 0 m %g %g l 0 %g m %g 0 l s\n",
 			fz_min(mediabox.x1, mediabox.y1) / 20,
 			mediabox.x1, mediabox.y1,
 			mediabox.y1, mediabox.x1);

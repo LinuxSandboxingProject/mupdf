@@ -39,7 +39,8 @@ static void usage(void)
 		"\n"
 		"\t-o -\toutput file name (%%d for page number)\n"
 		"\t-F -\toutput format (default inferred from output file name)\n"
-		"\t\tcbz, pdf, png, svg\n"
+		"\t\t\tpng, pnm, pgm, ppm, pam, tga, pbm, pkm,\n"
+		"\t\t\tpdf, svg, cbz\n"
 		"\t-O -\tcomma separated list of options for output format\n"
 		"\n"
 		"\tpages\tcomma separated list of page ranges (N=last page)\n"
@@ -48,7 +49,6 @@ static void usage(void)
 	fputs(fz_draw_options_usage, stderr);
 	fputs(fz_stext_options_usage, stderr);
 	fputs(fz_cbz_write_options_usage, stderr);
-	fputs(fz_png_write_options_usage, stderr);
 #if FZ_ENABLE_PDF
 	fputs(fz_pdf_write_options_usage, stderr);
 #endif
@@ -66,7 +66,7 @@ static void runpage(int number)
 	fz_bound_page(ctx, page, &mediabox);
 	dev = fz_begin_page(ctx, out, &mediabox);
 	fz_run_page(ctx, page, dev, &fz_identity, NULL);
-	fz_end_page(ctx, out, dev);
+	fz_end_page(ctx, out);
 	fz_drop_page(ctx, page);
 }
 

@@ -439,7 +439,7 @@ xps_load_page(fz_context *ctx, xps_document *doc, int number)
 			root = xps_load_fixed_page(ctx, doc, fix);
 			fz_try(ctx)
 			{
-				page = fz_new_page(ctx, sizeof *page);
+				page = fz_new_derived_page(ctx, xps_page);
 				page->super.load_links = (fz_page_load_links_fn *)xps_load_links;
 				page->super.bound_page = (fz_page_bound_page_fn *)xps_bound_page;
 				page->super.run_page_contents = (fz_page_run_page_contents_fn *)xps_run_page;
@@ -484,7 +484,7 @@ xps_recognize(fz_context *ctx, const char *magic)
 
 fz_document_handler xps_document_handler =
 {
-	(fz_document_recognize_fn *)&xps_recognize,
-	(fz_document_open_fn *)&xps_open_document,
-	(fz_document_open_with_stream_fn *)&xps_open_document_with_stream
+	xps_recognize,
+	(fz_document_open_fn *) xps_open_document,
+	(fz_document_open_with_stream_fn *) xps_open_document_with_stream
 };
